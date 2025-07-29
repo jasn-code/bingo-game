@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Off-Campus Life Bingo – Challenge Mode</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f9ff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #1e3a8a;
+    }
+    #bingo-board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .cell {
+      background: #e0f2fe;
+      padding: 20px;
+      border: 2px solid #38bdf8;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+      user-select: none;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      text-align: center;
+    }
+    .cell.revealed {
+      background: #c7e6fb;
+    }
+    .cell.completed {
+      background: #2563eb;
+      color: white;
+    }
+    .cell.free {
+      background: #1e40af;
+      color: white;
+      cursor: default;
+    }
+    #reset {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #38bdf8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #reset:hover {
+      background: #0ea5e9;
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal h2 {
+      color: #1e3a8a;
+    }
+
+    .close-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #1e40af;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      background: #3749c8;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎉 Off-Campus Life Bingo – Challenge Mode 🎉</h1>
+  <div id="bingo-board"></div>
+  <button id="reset">Reset Bingo</button>
+
+  <!-- Modal -->
+  <div id="bingoModal" class="modal-overlay">
+    <div class="modal">
+      <h2>🎉 BINGO! 🎉</h2>
+      <p>You win! Hurry! Congratulations!.</p>
+      <button class="close-btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const tasks = [
+      "Bought groceries", "Took out trash", "Cleaned kitchen",
+      "Set up Wi-Fi", "Paid a bill", "Cooked a meal",
+      "Met a neighbor", "Walked to campus", "Made a budget",
+      "Called maintenance", "Found nearest bus stop", "Did laundry",
+      "Signed lease", "Packed a lunch", "Changed lightbulb",
+      "Vacuumed floor", "Recycled", "Set up utilities",
+      "Reported issue", "Woke up early", "Tidied up",
+      "Wrote landlord", "Reviewed expenses", "No dining out"
+    ];
+
+    let hasWon = false;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function checkBingo(cells) {
+      const size = 5;
+      const activeMatrix = [];
+      for (let i = 0; i < size; i++) {
+        activeMatrix[i] = [];
+        for (let j = 0; j < size; j++) {
+          const cell = cells[i * size + j];
+          activeMatrix[i][j] = cell.classList.contains('completed');
+        }
+      }
+
+      // Rows
+      for (let i = 0; i < size; i++) {
+        if (activeMatrix[i].every(Boolean)) return true;
+      }
+
+      // Columns
+      for (let j = 0; j < size; j++) {
+        if (activeMatrix.every(row => row[j])) return true;
+      }
+
+      // Diagonals
+      let diag1 = true, diag2 = true;
+      for (let i = 0; i < size; i++) {
+        if (!activeMatrix[i][i]) diag1 = false;
+        if (!activeMatrix[i][size - 1 - i]) diag2 = false;
+      }
+
+      return diag1 || diag2;
+    }
+
+    function showModal() {
+      document.getElementById("bingoModal").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("bingoModal").style.display = "none";
+    }
+
+    function createBoard() {
+      const board = document.getElementById("bingo-board");
+      hasWon = false;
+      closeModal();
+      board.innerHTML = "";
+
+      const shuffled = shuffle([...tasks]);
+      shuffled.splice(12, 0, "FREE SPACE");
+
+      shuffled.forEach((task, i) => {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.dataset.state = "hidden";
+        cell.dataset.task = task;
+
+        if (task === "FREE SPACE") {
+          cell.innerText = "FREE SPACE";
+          cell.classList.add("free", "completed");
+          cell.dataset.state = "completed";
+        } else {
+          cell.innerText = "Click to Reveal";
+          cell.addEventListener("click", () => {
+            if (cell.dataset.state === "hidden") {
+              cell.innerText = cell.dataset.task;
+              cell.classList.add("revealed");
+              cell.dataset.state = "revealed";
+            } else if (cell.dataset.state === "revealed") {
+              cell.classList.remove("revealed");
+              cell.classList.add("completed");
+              cell.dataset.state = "completed";
+
+              const cells = document.querySelectorAll(".cell");
+              if (!hasWon && checkBingo(cells)) {
+                hasWon = true;
+                showModal();
+              }
+            }
+          });
+        }
+
+        board.appendChild(cell);
+      });
+
+      // Check if we win with FREE SPACE initially
+      const cells = document.querySelectorAll(".cell");
+      if (!hasWon && checkBingo(cells)) {
+        hasWon = true;
+        showModal();
+      }
+    }
+
+    document.getElementById("reset").addEventListener("click", createBoard);
+    createBoard();
+  </script>
+</body>
+</html>
